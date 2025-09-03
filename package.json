@@ -4,7 +4,7 @@
   "description": "",
   "main": "fileProxy_server.js",
   "scripts": {
-    "start": "node index.js",
+    "start": "node fileProxy_server.js",
     "test": "mocha"
   },
   "keywords": [

@@ -2,14 +2,14 @@ const assert = require('assert');
 const request = require('supertest');
 const fs = require('fs');
 const path = require('path');
-const server = require('../index'); // adjust path if needed
+const server = require('../fileProxy_server'); // adjust path if needed
 
 const DATA_ROOT = path.join(__dirname, '../data'); // same as in your server
 
 describe('Proxy Server', function() {
   it('should start without throwing', function() {
     // Just try to require the script
-    assert.doesNotThrow(() => require('../index.js'));
+    assert.doesNotThrow(() => require('../fileProxy_server.js'));
   });
 });
 
