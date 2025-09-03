@@ -6,25 +6,43 @@ const path = require('path');
 const proxy = httpProxy.createProxyServer({});
 const DATA_ROOT = path.join(__dirname, 'data');
 
+/**
+ * Set CORS headers to allow cross-origin requests
+ * @param {http.ServerResponse} res
+ */
 function setCORS(res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 }
 
+/**
+ * Sanitize a file/directory path to prevent escaping DATA_ROOT
+ * @param {string} p
+ * @returns {string} safe absolute path
+ * @throws {Error} if path is outside of DATA_ROOT
+ */
 function safePath(p) {
   const resolved = path.normalize(path.join(DATA_ROOT, p));
   if (!resolved.startsWith(DATA_ROOT)) throw new Error('Invalid path');
   return resolved;
 }
 
-server = http.createServer((req, res) => {
+/**
+ * HTTP server handling file proxy endpoints
+ */
+const server = http.createServer((req, res) => {
+
+  // Handle preflight CORS requests
   if (req.method === 'OPTIONS') {
     setCORS(res);
     res.writeHead(200);
     return res.end();
   }
 
+  // -------------------------
+  // Load a file (/load)
+  // -------------------------
   if (req.method === 'POST' && req.url === '/load') {
     setCORS(res);
     let body = '';
@@ -42,9 +60,7 @@ server = http.createServer((req, res) => {
           try {
             const json = JSON.parse(data);
             res.writeHead(200, { 'Content-Type': 'application/json' });
-        //    res.end(JSON.stringify({ loaded: filename, data: json }));
-            res.end(JSON.stringify( json ));
-
+            res.end(JSON.stringify(json));
           } catch (e) {
             res.writeHead(200, { 'Content-Type': 'text/plain' });
             res.end(data);
@@ -58,57 +74,61 @@ server = http.createServer((req, res) => {
     return;
   }
 
-if (req.method === 'POST' && req.url.startsWith('/save')) {
-  setCORS(res);
+  // -------------------------
+  // Save a file (/save)
+  // -------------------------
+  if (req.method === 'POST' && req.url.startsWith('/save')) {
+    setCORS(res);
 
-  const urlParts = new URL(req.url, `http://${req.headers.host}`);
-  const filename = urlParts.searchParams.get('filename');
+    const urlParts = new URL(req.url, `http://${req.headers.host}`);
+    const filename = urlParts.searchParams.get('filename');
 
-  if (!filename || typeof filename !== 'string') {
-    res.writeHead(400, { 'Content-Type': 'application/json' });
-    return res.end(JSON.stringify({ error: 'Missing filename' }));
+    if (!filename || typeof filename !== 'string') {
+      res.writeHead(400, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify({ error: 'Missing filename' }));
+    }
+
+    const filePath = safePath(filename);
+    let body = '';
+
+    req.on('data', chunk => (body += chunk));
+    req.on('end', () => {
+      try {
+        let contentToWrite = body;
+
+        // Normalize based on content-type
+        const ct = req.headers['content-type'] || '';
+        if (ct.includes('application/json')) {
+          try {
+            const parsed = JSON.parse(body);
+            contentToWrite = JSON.stringify(parsed, null, 2); // pretty-print
+          } catch (e) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ error: 'Invalid JSON' }));
+          }
+        }
+
+        fs.mkdirSync(path.dirname(filePath), { recursive: true });
+        fs.writeFile(filePath, contentToWrite, 'utf8', err => {
+          if (err) {
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            return res.end(JSON.stringify({ error: 'Write failed' }));
+          }
+          res.writeHead(200, { 'Content-Type': 'application/json' });
+          res.end(JSON.stringify({ saved: filename }));
+        });
+      } catch (e) {
+        res.writeHead(400, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: e.message }));
+      }
+    });
+
+    return;
   }
 
-  const filePath = safePath(filename);
-  let body = '';
-
-  req.on('data', chunk => (body += chunk));
-  req.on('end', () => {
-    try {
-      let contentToWrite = body;
-
-      // Normalize based on content-type
-      const ct = req.headers['content-type'] || '';
-      if (ct.includes('application/json')) {
-        try {
-          const parsed = JSON.parse(body);
-          // Pretty-print JSON before saving
-          contentToWrite = JSON.stringify(parsed, null, 2);
-        } catch (e) {
-          res.writeHead(400, { 'Content-Type': 'application/json' });
-          return res.end(JSON.stringify({ error: 'Invalid JSON' }));
-        }
-      }
-
-      fs.mkdirSync(path.dirname(filePath), { recursive: true });
-      fs.writeFile(filePath, contentToWrite, 'utf8', err => {
-        if (err) {
-          res.writeHead(500, { 'Content-Type': 'application/json' });
-          return res.end(JSON.stringify({ error: 'Write failed' }));
-        }
-        res.writeHead(200, { 'Content-Type': 'application/json' });
-        res.end(JSON.stringify({ saved: filename }));
-      });
-    } catch (e) {
-      res.writeHead(400, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify({ error: e.message }));
-    }
-  });
-
-  return;
-}
-
-
+  // -------------------------
+  // List directory contents (/list)
+  // -------------------------
   if (req.method === 'POST' && req.url === '/list') {
     setCORS(res);
     let body = '';
@@ -134,6 +154,9 @@ if (req.method === 'POST' && req.url.startsWith('/save')) {
     return;
   }
 
+  // -------------------------
+  // Delete file or directory (/delete)
+  // -------------------------
   if (req.method === 'POST' && req.url === '/delete') {
     setCORS(res);
     let body = '';
@@ -159,6 +182,9 @@ if (req.method === 'POST' && req.url.startsWith('/save')) {
     return;
   }
 
+  // -------------------------
+  // Create directory (/mkdir)
+  // -------------------------
   if (req.method === 'POST' && req.url === '/mkdir') {
     setCORS(res);
     let body = '';
@@ -184,7 +210,9 @@ if (req.method === 'POST' && req.url.startsWith('/save')) {
     return;
   }
 
-// Remove directory
+  // -------------------------
+  // Remove directory (/rmdir)
+  // -------------------------
   if (req.method === 'POST' && req.url === '/rmdir') {
     setCORS(res);
     let body = '';
@@ -194,6 +222,7 @@ if (req.method === 'POST' && req.url.startsWith('/save')) {
         const { dirname } = JSON.parse(body);
         if (!dirname || typeof dirname !== 'string') throw new Error('Missing dirname');
         const dirPath = safePath(dirname);
+        // Use fs.rm instead of deprecated fs.rmdir
         fs.rm(dirPath, { recursive: true, force: true }, err => {
           if (err) {
             res.writeHead(500, { 'Content-Type': 'application/json' });
@@ -212,15 +241,12 @@ if (req.method === 'POST' && req.url.startsWith('/save')) {
 
 });
 
+// Start server only if run directly
 if (require.main === module) {
   server.listen(7799, () => {
     console.log('fileproxy listening on http://localhost:7799');
   });
 }
 
+// Export for testing
 module.exports = server;
-
-//.listen(7799, () => {
-//  console.log('fileproxy listening on http://localhost:7799');
-//});
-
