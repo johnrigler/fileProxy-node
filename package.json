@@ -1,0 +1,15 @@
+{
+  "name": "fileproxy-server",
+  "version": "1.0.0",
+  "description": "",
+  "main": "fileProxy_server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [ "file" , "proxy" , "local" , "http" , "cors" ],
+  "author": "John Rigler",
+  "license": "MIT",
+  "dependencies": {
+    "http-proxy": "^1.18.1"
+  }
+}
