@@ -83,9 +83,7 @@ const server = http.createServer((req, res) => {
   if (req.method === 'POST' && req.url.startsWith('/save')) {
     setCORS(res);
 
- //   const urlParts = new URL(req.url, `http://${req.headers.host}`);
     const filename = urlParts.searchParams.get('filename');
-  //  const width = urlParts.searchParams.get('width') || '';
 
     if (!filename || typeof filename !== 'string') {
       res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -289,10 +287,7 @@ if (pathname === '/image') {
 //  fs.createReadStream(absPath).pipe(res);
     let imgStream = fs.createReadStream(absPath);
 
-//    const width = "200px";
-    const width = urlParts.searchParams.get('width') || '';
-
-
+    const width = parseInt(urlParts.searchParams.get('width')) || '';
 
     // Resize if width provided
     if (width && !isNaN(width)) {
