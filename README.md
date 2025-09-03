@@ -236,6 +236,15 @@ await fileProxy.mkDir("data/newFolder");
 await fileProxy.rmDir("data/newFolder");
 ```
 
+### Access an image file remotely from data/images
+
+```js
+const img = document.createElement('img');
+img.src = `http://localhost:7799/image?file=${encodeURIComponent("images/decoy.jpeg")}`;
+document.body.appendChild(img);
+
+```
+
 ---
 
 ## Example Workflow with Library
