@@ -2,83 +2,133 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>fileProxy Test</title>
+<title>fileProxy Live Demo</title>
 <style>
-  body { font-family: monospace; }
+  body { font-family: monospace; padding: 20px; }
+  .code { background: #f4f4f4; padding: 10px; margin: 10px 0; white-space: pre; }
+  .output { margin: 5px 0 15px 0; padding: 10px; border-left: 4px solid #333; }
   .success { color: green; }
   .fail { color: red; }
-  .step { margin-bottom: 1em; }
+  button { margin: 5px 0; }
+  hr { margin: 30px 0; }
 </style>
 </head>
 <body>
 
-<h1>fileProxy Test</h1>
-<div id="output"></div>
+<h1>fileProxy.js Live Demo</h1>
+<div id="demo"></div>
 
 <script src="../lib/fileProxy.js?adfd"></script>
 <script>
-async function log(msg, status) {
-  const div = document.createElement('div');
-  div.textContent = msg;
-  if (status === 'success') div.className = 'success';
-  if (status === 'fail') div.className = 'fail';
-  div.classList.add('step');
-  document.getElementById('output').appendChild(div);
-}
+const demo = document.getElementById('demo');
 
-async function checkServer() {
-  try {
-    const res = await fetch('http://localhost:7799/list', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ dirname: '' })
-    });
-    if (!res.ok) throw new Error('Server responded with ' + res.status);
-    return true;
-  } catch(e) {
-    await log('Cannot reach fileProxy server at http://localhost:7799. Make sure node index.js is running.', 'fail');
-    return false;
+function addExample(title, code, runFn) {
+  const h3 = document.createElement('h3');
+  h3.textContent = title;
+  demo.appendChild(h3);
+
+  const pre = document.createElement('pre');
+  pre.className = 'code';
+  pre.textContent = code;
+  demo.appendChild(pre);
+
+  const btn = document.createElement('button');
+  btn.textContent = 'Run Example';
+  demo.appendChild(btn);
+
+  const out = document.createElement('div');
+  out.className = 'output';
+  demo.appendChild(out);
+
+  btn.onclick = async () => {
+    out.textContent = 'Running...';
+    try {
+      const result = await runFn();
+      out.textContent = 'Result: ' + JSON.stringify(result, null, 2);
+      out.className = 'output success';
+    } catch (e) {
+      out.textContent = 'Error: ' + e.message;
+      out.className = 'output fail';
+    }
   }
+
+  demo.appendChild(document.createElement('hr'));
 }
 
-async function runTests() {
-  if (!(await checkServer())) return;
+// Example: Check server
+addExample(
+  'Check Server Running',
+`await fetch('http://localhost:7799/list', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ dirname: '' })
+});`,
+async () => {
+  const res = await fetch('http://localhost:7799/list', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ dirname: '' })
+  });
+  if (!res.ok) throw new Error('Server not reachable: ' + res.status);
+  return 'Server is running';
+});
 
-  try {
-    await log('Creating directory "testDir"...');
-    await fileProxy.mkDir('testDir');
-    await log('Created directory "testDir".', 'success');
+// Example: Create directory
+addExample(
+  'Create Directory',
+`await fileProxy.mkDir('demoDir');`,
+async () => {
+  await fileProxy.mkDir('demoDir');
+  return 'Directory "demoDir" created';
+});
 
-    await log('Writing file "testDir/test.json"...');
-    await fileProxy.fileWrite({ foo: 'bar' }, 'testDir/test.json');
-    await log('Wrote file "testDir/test.json".', 'success');
+// Example: Write JSON file
+addExample(
+  'Write JSON File',
+`await fileProxy.fileWrite({foo:'bar'}, 'demoDir/test.json');`,
+async () => {
+  await fileProxy.fileWrite({foo:'bar'}, 'demoDir/test.json');
+  return 'File "demoDir/test.json" written';
+});
 
-    await log('Listing contents of "testDir"...');
-    const list = await fileProxy.fileList('testDir');
-    await log('Directory contents: ' + JSON.stringify(list.list), 'success');
+// Example: List directory
+addExample(
+  'List Directory',
+`await fileProxy.fileList('demoDir');`,
+async () => {
+  const list = await fileProxy.fileList('demoDir');
+  return list.list;
+});
 
-    await log('Reading file "testDir/test.json"...');
-    const fileRes = await fileProxy.fileRead('testDir/test.json');
-    const data = await fileRes.json();
-    await log('Read data: ' + JSON.stringify(data), 'success');
+// Example: Read JSON file
+addExample(
+  'Read JSON File',
+`const res = await fileProxy.fileRead('demoDir/test.json');\nconst data = await res.json();`,
+async () => {
+  const res = await fileProxy.fileRead('demoDir/test.json');
+  const data = await res.json();
+  return data;
+});
 
-    await log('Deleting file "testDir/test.json"...');
-    await fileProxy.fileDelete('testDir/test.json');
-    await log('Deleted file.', 'success');
+// Example: Delete file
+addExample(
+  'Delete File',
+`await fileProxy.fileDelete('demoDir/test.json');`,
+async () => {
+  await fileProxy.fileDelete('demoDir/test.json');
+  return 'File deleted';
+});
 
-    await log('Removing directory "testDir"...');
-    await fileProxy.rmDir('testDir');
-    await log('Removed directory "testDir".', 'success');
-
-    await log('All tests completed.', 'success');
-
-  } catch (e) {
-    await log('Error during tests: ' + e.message, 'fail');
-  }
-}
-
-runTests();
+// Example: Remove directory
+addExample(
+  'Remove Directory',
+`await fileProxy.rmDir('demoDir');`,
+async () => {
+  await fileProxy.rmDir('demoDir');
+  return 'Directory removed';
+});
 </script>
+
 </body>
 </html>
 
