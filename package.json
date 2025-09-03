@@ -4,13 +4,22 @@
   "description": "",
   "main": "fileProxy_server.js",
   "scripts": {
-    "start": "node fileProxy_server.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js",
+    "test": "mocha"
   },
-  "keywords": [ "file" , "proxy" , "local" , "http" , "cors" ],
+  "keywords": [
+    "file",
+    "proxy",
+    "local",
+    "http",
+    "cors"
+  ],
   "author": "John Rigler",
   "license": "MIT",
   "dependencies": {
     "http-proxy": "^1.18.1"
+  },
+  "devDependencies": {
+    "mocha": "^11.7.2"
   }
 }
