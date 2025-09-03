@@ -2,6 +2,7 @@ const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const { URL } = require('url');
+const sharp = require('sharp');
 
 const DATA_ROOT = path.join(__dirname, 'data');
 
@@ -32,6 +33,8 @@ function safePath(p) {
  * HTTP server handling file endpoints
  */
 const server = http.createServer((req, res) => {
+
+    const urlParts = new URL(req.url, `http://${req.headers.host}`);
 
   // Handle preflight CORS requests
   if (req.method === 'OPTIONS') {
@@ -80,8 +83,9 @@ const server = http.createServer((req, res) => {
   if (req.method === 'POST' && req.url.startsWith('/save')) {
     setCORS(res);
 
-    const urlParts = new URL(req.url, `http://${req.headers.host}`);
+ //   const urlParts = new URL(req.url, `http://${req.headers.host}`);
     const filename = urlParts.searchParams.get('filename');
+  //  const width = urlParts.searchParams.get('width') || '';
 
     if (!filename || typeof filename !== 'string') {
       res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -245,6 +249,9 @@ const server = http.createServer((req, res) => {
 
   const urlObj = new URL(req.url, `http://${req.headers.host}`);
   const pathname = urlObj.pathname;
+  // const width = parseInt(req.query.width, 10);
+
+
 
 if (pathname === '/image') {
     const relPath = urlObj.searchParams.get('file');
@@ -279,7 +286,22 @@ if (pathname === '/image') {
     const contentType = mimeTypes[ext] || 'application/octet-stream';
 
     res.writeHead(200, { 'Content-Type': contentType });
-    fs.createReadStream(absPath).pipe(res);
+//  fs.createReadStream(absPath).pipe(res);
+    let imgStream = fs.createReadStream(absPath);
+
+//    const width = "200px";
+    const width = urlParts.searchParams.get('width') || '';
+
+
+
+    // Resize if width provided
+    if (width && !isNaN(width)) {
+      const transformer = sharp().resize(width);
+      imgStream = imgStream.pipe(transformer);
+    }
+
+    imgStream.pipe(res);
+
     return;
   }
 

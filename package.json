@@ -17,7 +17,8 @@
   "author": "John Rigler",
   "license": "MIT",
   "dependencies": {
-    "http-proxy": "^1.18.1"
+    "http-proxy": "^1.18.1",
+    "sharp": "^0.34.3"
   },
   "devDependencies": {
     "chai": "^6.0.1",
