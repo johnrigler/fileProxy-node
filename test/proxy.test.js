@@ -4,6 +4,11 @@ const fs = require('fs');
 const path = require('path');
 const server = require('../fileProxy_server'); // adjust path if needed
 
+const testImage = 'images/decoy.jpeg';
+
+//ls data/images/decoy.jpeg 
+//data/images/decoy.jpeg
+
 const DATA_ROOT = path.join(__dirname, '../data'); // same as in your server
 
 describe('Proxy Server', function() {
@@ -96,6 +101,23 @@ describe('File Proxy', function() {
       })
       .end(done);
   });
+
+it('should serve an image file from /image', function(done) {
+    request(baseUrl)
+      .get('/image')
+      .query({ file: testImage })
+      .expect(200)
+      .expect(res => {
+        const contentType = res.headers['content-type'] || '';
+        if (!contentType.startsWith('image/')) throw new Error('Not an image');
+        if (!res.body || res.body.length === 0) throw new Error('Empty image');
+      })
+      .end(done);
+  });
+
+
+
+// ------ closing
 });
 
 

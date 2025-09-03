@@ -1,10 +1,10 @@
 const http = require('http');
-const httpProxy = require('http-proxy');
 const fs = require('fs');
 const path = require('path');
+const { URL } = require('url');
 
-const proxy = httpProxy.createProxyServer({});
 const DATA_ROOT = path.join(__dirname, 'data');
+
 
 /**
  * Set CORS headers to allow cross-origin requests
@@ -29,7 +29,7 @@ function safePath(p) {
 }
 
 /**
- * HTTP server handling file proxy endpoints
+ * HTTP server handling file endpoints
  */
 const server = http.createServer((req, res) => {
 
@@ -239,12 +239,60 @@ const server = http.createServer((req, res) => {
     return;
   }
 
+  // --------------------------
+  // Add image streaming route
+  // --------------------------
+
+  const urlObj = new URL(req.url, `http://${req.headers.host}`);
+  const pathname = urlObj.pathname;
+
+if (pathname === '/image') {
+    const relPath = urlObj.searchParams.get('file');
+
+    if (!relPath) {
+      res.writeHead(400, { 'Content-Type': 'text/plain' });
+      return res.end('Missing file parameter');
+    }
+
+   // Build absolute path safely inside data/
+    const absPath = path.normalize(path.join(DATA_ROOT, relPath));
+    if (!absPath.startsWith(DATA_ROOT)) {
+      res.writeHead(403, { 'Content-Type': 'text/plain' });
+      return res.end('Access denied');
+    }
+
+
+    if (!absPath || !fs.existsSync(absPath)) {
+      res.writeHead(404, { 'Content-Type': 'text/plain' });
+      return res.end(pathname + 'File not found!');
+    }
+
+    // Mime type lookup
+    const ext = path.extname(absPath).toLowerCase();
+    const mimeTypes = {
+      '.jpg': 'image/jpeg',
+      '.jpeg': 'image/jpeg',
+      '.png': 'image/png',
+      '.gif': 'image/gif',
+      '.webp': 'image/webp'
+    };
+    const contentType = mimeTypes[ext] || 'application/octet-stream';
+
+    res.writeHead(200, { 'Content-Type': contentType });
+    fs.createReadStream(absPath).pipe(res);
+    return;
+  }
+
+  // Default route for existing API calls
+  res.writeHead(200, { 'Content-Type': 'application/json' });
+  res.end(JSON.stringify({ status: 'ok' }));
+
 });
 
 // Start server only if run directly
 if (require.main === module) {
   server.listen(7799, () => {
-    console.log('fileproxy listening on http://localhost:7799');
+    console.log('fileProxy listening on http://localhost:7799');
   });
 }
 

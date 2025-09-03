@@ -20,7 +20,9 @@
     "http-proxy": "^1.18.1"
   },
   "devDependencies": {
+    "chai": "^6.0.1",
     "mocha": "^11.7.2",
+    "node-fetch": "^3.3.2",
     "supertest": "^7.1.4"
   }
 }
