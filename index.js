@@ -18,7 +18,7 @@ function safePath(p) {
   return resolved;
 }
 
-http.createServer((req, res) => {
+server = http.createServer((req, res) => {
   if (req.method === 'OPTIONS') {
     setCORS(res);
     res.writeHead(200);
@@ -194,7 +194,7 @@ if (req.method === 'POST' && req.url.startsWith('/save')) {
         const { dirname } = JSON.parse(body);
         if (!dirname || typeof dirname !== 'string') throw new Error('Missing dirname');
         const dirPath = safePath(dirname);
-        fs.rmdir(dirPath, { recursive: true }, err => {
+        fs.rm(dirPath, { recursive: true, force: true }, err => {
           if (err) {
             res.writeHead(500, { 'Content-Type': 'application/json' });
             return res.end(JSON.stringify({ error: 'Rmdir failed' }));
@@ -210,7 +210,17 @@ if (req.method === 'POST' && req.url.startsWith('/save')) {
     return;
   }
 
-}).listen(7799, () => {
-  console.log('fileproxy listening on http://localhost:7799');
 });
+
+if (require.main === module) {
+  server.listen(7799, () => {
+    console.log('fileproxy listening on http://localhost:7799');
+  });
+}
+
+module.exports = server;
+
+//.listen(7799, () => {
+//  console.log('fileproxy listening on http://localhost:7799');
+//});
 
