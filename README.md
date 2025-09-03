@@ -1,222 +1,112 @@
-# File Proxy Server
+# fileProxy.js Library
 
-A simple Node.js HTTP proxy to read and write to the local filesystem.
+A lightweight JavaScript library to interact with a local `fileProxy` server for reading, writing, listing, and deleting files and directories from a vanilla JS environment.
 
-## Installation
-```bash
-git clone https://github.com/johnrigler/fileProxy-node.git
-cd fileProxy-node 
-npm install
-
-## To Use
-
-Copy the "lib" directory into your place where your local webserver can see it, then load into  
-your local "vanilla" javascript environment. 
-
-# FileProxy
-
-A simple local HTTP proxy for reading, writing, listing, and deleting files and directories. Built with Node.js, supports CORS, and can be used programmatically or via HTTP requests.
+This library is designed to be imported in a browser or Node.js environment that supports `fetch`.
 
 ---
 
-## Installation
+## Installation / Setup
 
-```bash
-git clone https://github.com/yourusername/fileproxy.git
-cd fileproxy
-npm install
-```
-
----
-
-## Running the server
+1. Start the `fileProxy` server (must run separately):
 
 ```bash
 node index.js
 ```
 
-The server listens on **http://localhost:7799** by default.  
+The server listens on `http://localhost:7799` by default.
 
----
+2. Include `fileProxy.js` in your project (e.g., in `lib/`):
 
-## Endpoints
-
-All endpoints accept **POST** requests with JSON payloads. CORS is enabled.
-
----
-
-### 1. Create Directory (`/mkdir`)
-
-**Request**
-
-```json
-POST /mkdir
-Content-Type: application/json
-
-{
-  "dirname": "myfolder"
-}
+```html
+<script src="lib/fileProxy.js"></script>
 ```
 
-**Response**
-
-```json
-{
-  "created": "myfolder"
-}
-```
-
----
-
-### 2. Remove Directory (`/rmdir`)
-
-**Request**
-
-```json
-POST /rmdir
-Content-Type: application/json
-
-{
-  "dirname": "myfolder"
-}
-```
-
-**Response**
-
-```json
-{
-  "removed": "myfolder"
-}
-```
-
----
-
-### 3. List Directory (`/list`)
-
-**Request**
-
-```json
-POST /list
-Content-Type: application/json
-
-{
-  "dirname": "myfolder"
-}
-```
-
-**Response**
-
-```json
-{
-  "dirname": "myfolder",
-  "list": [
-    { "name": "file1.json", "type": "file" },
-    { "name": "subfolder", "type": "dir" }
-  ]
-}
-```
-
----
-
-### 4. Save File (`/save`)
-
-**Request**
-
-```
-POST /save?filename=myfolder/test.json
-Content-Type: application/json
-
-{
-  "hello": "world"
-}
-```
-
-**Response**
-
-```json
-{
-  "saved": "myfolder/test.json"
-}
-```
-
----
-
-### 5. Load File (`/load`)
-
-**Request**
-
-```json
-POST /load
-Content-Type: application/json
-
-{
-  "filename": "myfolder/test.json"
-}
-```
-
-**Response**
-
-```json
-{
-  "hello": "world"
-}
-```
-
----
-
-### 6. Delete File or Directory (`/delete`)
-
-**Request**
-
-```json
-POST /delete
-Content-Type: application/json
-
-{
-  "filename": "myfolder/test.json"
-}
-```
-
-**Response**
-
-```json
-{
-  "deleted": "myfolder/test.json"
-}
-```
-
----
-
-## Programmatic Usage
-
-You can also import the server into another Node.js module (e.g., for testing):
+Or import as a module in Node.js:
 
 ```js
-const server = require('./index');
-
-// start on random port
-const testServer = server.listen(0, () => {
-  const port = testServer.address().port;
-  console.log('Server running on port', port);
-});
+const fileProxy = require('./lib/fileProxy.js');
 ```
 
 ---
 
-## Testing
+## Usage
 
-Tests use [Mocha](https://mochajs.org/) and [Supertest](https://www.npmjs.com/package/supertest):
+All functions are asynchronous and return promises.
 
-```bash
-npm install --save-dev mocha supertest
-npm test
+### Write a file
+
+```js
+await fileProxy.fileWrite({ hello: "world" }, "data/test.json");
+
+// Or plain text
+await fileProxy.fileWrite("Just some text", "data/text.txt");
 ```
+
+### Read a file
+
+```js
+const response = await fileProxy.fileRead("data/test.json");
+const data = await response.json(); // if JSON content
+console.log(data);
+```
+
+> Note: `fileRead` returns a `fetch` Response object. If reading JSON, call `.json()`. For text, call `.text()`.
+
+### List directory contents
+
+```js
+const files = await fileProxy.fileList("data");
+console.log(files.list); 
+// Output: array of { name, type } objects
+```
+
+`dirname` is optional; defaults to the root of the `data/` folder.
+
+### Delete a file
+
+```js
+await fileProxy.fileDelete("data/test.json");
+```
+
+### Create a directory
+
+```js
+await fileProxy.mkDir("data/newFolder");
+```
+
+### Remove a directory
+
+```js
+await fileProxy.rmDir("data/newFolder");
+```
+
+> Directories are removed recursively.
 
 ---
 
 ## Notes
 
-- File paths are **sandboxed** to the `data/` folder by default.  
-- CORS headers allow cross-origin requests.  
-- `/rmdir` and `/delete` use `fs.rm` to avoid Node.js deprecation warnings.  
+- All file paths are sandboxed to the `data/` folder for security.  
+- The library relies on the local `fileProxy` server. Make sure it is running before calling any functions.  
+- `fetch` is used under the hood; ensure your environment supports it (modern browsers or Node.js >=18 with `node-fetch`).  
+- All methods are asynchronous, so remember to use `await` or `.then()`.
+
+---
+
+## Example: Full workflow
+
+```js
+await fileProxy.mkDir("data/example");
+await fileProxy.fileWrite({ test: 123 }, "data/example/test.json");
+
+const files = await fileProxy.fileList("data/example");
+console.log(files);
+
+const fileData = await fileProxy.fileRead("data/example/test.json");
+console.log(await fileData.json());
+
+await fileProxy.fileDelete("data/example/test.json");
+await fileProxy.rmDir("data/example");
+```
 
