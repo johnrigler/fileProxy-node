@@ -24,7 +24,7 @@ npm install
 ## Running the Server
 
 ```bash
-node index.js
+node fileProxy_server.js
 ```
 
 The server listens on **http://localhost:7799** by default.  
@@ -253,6 +253,15 @@ console.log(await fileData.json());
 await fileProxy.fileDelete("data/example/test.json");
 await fileProxy.rmDir("data/example");
 ```
+
+---
+
+## Client-Side example
+
+Put the example and required library in HTML path to see a live example, or
+visit https://johnrigler.github.io/fileProxy 
+
+(Note, this page only works if you are running the node proxy.)
 
 ---
 
