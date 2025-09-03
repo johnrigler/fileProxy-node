@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>fileProxy Test</title>
+<style>
+  body { font-family: monospace; }
+  .success { color: green; }
+  .fail { color: red; }
+  .step { margin-bottom: 1em; }
+</style>
+</head>
+<body>
+
+<h1>fileProxy Test</h1>
+<div id="output"></div>
+
+<script src="../lib/fileProxy.js?adfd"></script>
+<script>
+async function log(msg, status) {
+  const div = document.createElement('div');
+  div.textContent = msg;
+  if (status === 'success') div.className = 'success';
+  if (status === 'fail') div.className = 'fail';
+  div.classList.add('step');
+  document.getElementById('output').appendChild(div);
+}
+
+async function checkServer() {
+  try {
+    const res = await fetch('http://localhost:7799/list', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ dirname: '' })
+    });
+    if (!res.ok) throw new Error('Server responded with ' + res.status);
+    return true;
+  } catch(e) {
+    await log('Cannot reach fileProxy server at http://localhost:7799. Make sure node index.js is running.', 'fail');
+    return false;
+  }
+}
+
+async function runTests() {
+  if (!(await checkServer())) return;
+
+  try {
+    await log('Creating directory "testDir"...');
+    await fileProxy.mkDir('testDir');
+    await log('Created directory "testDir".', 'success');
+
+    await log('Writing file "testDir/test.json"...');
+    await fileProxy.fileWrite({ foo: 'bar' }, 'testDir/test.json');
+    await log('Wrote file "testDir/test.json".', 'success');
+
+    await log('Listing contents of "testDir"...');
+    const list = await fileProxy.fileList('testDir');
+    await log('Directory contents: ' + JSON.stringify(list.list), 'success');
+
+    await log('Reading file "testDir/test.json"...');
+    const fileRes = await fileProxy.fileRead('testDir/test.json');
+    const data = await fileRes.json();
+    await log('Read data: ' + JSON.stringify(data), 'success');
+
+    await log('Deleting file "testDir/test.json"...');
+    await fileProxy.fileDelete('testDir/test.json');
+    await log('Deleted file.', 'success');
+
+    await log('Removing directory "testDir"...');
+    await fileProxy.rmDir('testDir');
+    await log('Removed directory "testDir".', 'success');
+
+    await log('All tests completed.', 'success');
+
+  } catch (e) {
+    await log('Error during tests: ' + e.message, 'fail');
+  }
+}
+
+runTests();
+</script>
+</body>
+</html>
+
