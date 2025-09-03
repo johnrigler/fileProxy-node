@@ -5,7 +5,7 @@ A local HTTP proxy for file operations and a JavaScript library for programmatic
 This project has two components:  
 
 1. **Server** (`fileProxy_server.js`) – runs a local HTTP server exposing endpoints to read, write, list, and delete files/directories.  
-2. **Client Library** (`lib/fileProxy.js`) – vanilla JavaScript functions to interact with the server programmatically.
+2. **Client Library** (`lib/fileProxy.js`) – vanilla JavaScript functions to interact with the server programmatically. All functionality exposed under "fileProxy" object.
 
 ---
 
